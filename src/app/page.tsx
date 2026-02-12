@@ -1,65 +1,223 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
+import type { VideoScript, GenerateResponse } from "@/lib/types";
+
+const VideoPreview = dynamic(() => import("@/components/VideoPreview"), {
+  ssr: false,
+  loading: () => (
+    <div className="preview-skeleton">
+      <div className="skeleton-pulse" />
+    </div>
+  ),
+});
+
+type Stage = "idle" | "scraping" | "generating" | "done" | "error";
 
 export default function Home() {
+  const [url, setUrl] = useState("");
+  const [stage, setStage] = useState<Stage>("idle");
+  const [script, setScript] = useState<VideoScript | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleGenerate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!url.trim()) return;
+
+    setError(null);
+    setScript(null);
+    setStage("scraping");
+
+    try {
+      // A small visual delay so user can see the scraping stage
+      await new Promise((r) => setTimeout(r, 800));
+      setStage("generating");
+
+      const res = await fetch("/api/generate-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      const data: GenerateResponse = await res.json();
+
+      if (!data.success || !data.script) {
+        throw new Error(data.error || "Failed to generate script.");
+      }
+
+      setScript(data.script);
+      setStage("done");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+      setStage("error");
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="app-container">
+      {/* ── Background Effects ── */}
+      <div className="bg-gradient" />
+      <div className="bg-grid" />
+
+      {/* ── Header ── */}
+      <header className="app-header">
+        <div className="logo">
+          <span className="logo-icon">⚡</span>
+          <h1>Blog to Shots</h1>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <p className="tagline">
+          Transform any blog post into scroll-stopping short videos
+        </p>
+      </header>
+
+      {/* ── Input Section ── */}
+      <section className="input-section">
+        <form onSubmit={handleGenerate} className="input-form">
+          <div className="input-wrapper">
+            <svg
+              className="input-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            <input
+              type="url"
+              placeholder="Paste your blog URL here..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              disabled={stage === "scraping" || stage === "generating"}
+              className="url-input"
+              id="blog-url-input"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <button
+            type="submit"
+            disabled={
+              !url.trim() || stage === "scraping" || stage === "generating"
+            }
+            className="generate-btn"
+            id="generate-btn"
           >
-            Documentation
-          </a>
+            {stage === "scraping" || stage === "generating" ? (
+              <span className="btn-loading">
+                <span className="spinner" />
+                {stage === "scraping" ? "Scanning..." : "Writing Script..."}
+              </span>
+            ) : (
+              <>
+                <span>Generate Video</span>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </>
+            )}
+          </button>
+        </form>
+      </section>
+
+      {/* ── Error ── */}
+      {error && (
+        <div className="error-banner" id="error-message">
+          <span className="error-icon">⚠️</span>
+          <p>{error}</p>
+          <button onClick={() => { setError(null); setStage("idle"); }} className="error-dismiss">
+            Try Again
+          </button>
         </div>
-      </main>
-    </div>
+      )}
+
+      {/* ── Pipeline Progress ── */}
+      {(stage === "scraping" || stage === "generating") && (
+        <div className="pipeline-progress">
+          <div className="pipeline-steps">
+            <div className={`pipeline-step ${stage === "scraping" ? "active" : "done"}`}>
+              <div className="step-dot" />
+              <span>Scraping Blog</span>
+            </div>
+            <div className="pipeline-line" />
+            <div className={`pipeline-step ${stage === "generating" ? "active" : ""}`}>
+              <div className="step-dot" />
+              <span>AI Script Generation</span>
+            </div>
+            <div className="pipeline-line" />
+            <div className="pipeline-step">
+              <div className="step-dot" />
+              <span>Ready to Preview</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Results ── */}
+      {script && stage === "done" && (
+        <section className="results-section">
+          {/* Script Card */}
+          <div className="script-card">
+            <div className="card-header">
+              <h2>📝 Generated Script</h2>
+              <span className="scene-count">{script.scenes.length} scenes</span>
+            </div>
+
+            <div className="script-content">
+              <div className="script-block hook-block">
+                <span className="block-label">HOOK</span>
+                <p>{script.hook}</p>
+              </div>
+
+              <div className="scenes-list">
+                {script.scenes.map((scene) => (
+                  <div key={scene.id} className="scene-item">
+                    <span className="scene-number">{scene.id}</span>
+                    <p>{scene.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="script-block cta-block">
+                <span className="block-label">CTA</span>
+                <p>{script.cta}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Video Preview */}
+          <div className="preview-card">
+            <div className="card-header">
+              <h2>🎬 Video Preview</h2>
+              <span className="badge">9:16 Vertical</span>
+            </div>
+            <div className="preview-container">
+              <VideoPreview script={script} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Footer ── */}
+      <footer className="app-footer">
+        <p>
+          Powered by <strong>Gemini AI</strong> + <strong>Remotion</strong>
+        </p>
+      </footer>
+    </main>
   );
 }
