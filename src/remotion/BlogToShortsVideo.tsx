@@ -566,10 +566,11 @@ const HookScene: React.FC<{
 
 const ContentScene: React.FC<{
   text: string;
+  description?: string;
   sceneIndex: number;
   totalScenes: number;
   backgroundUrl?: string;
-}> = ({ text, sceneIndex, totalScenes, backgroundUrl }) => {
+}> = ({ text, description, sceneIndex, totalScenes, backgroundUrl }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -729,6 +730,32 @@ const ContentScene: React.FC<{
           startFrame={8}
           shadow={true}
         />
+
+        {/* Description */}
+        {description && (
+          <div
+            style={{
+              marginTop: 30,
+              maxWidth: 800,
+              textAlign: "center",
+              opacity: interpolate(frame, [20, 35], [0, 1], { extrapolateRight: "clamp" }),
+              transform: `translateY(${interpolate(frame, [20, 35], [20, 0], { extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) })}px)`,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 28,
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.85)",
+                fontFamily: "'Inter', sans-serif",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                lineHeight: 1.4,
+              }}
+            >
+              {description}
+            </span>
+          </div>
+        )}
       </AbsoluteFill>
 
       {/* Bottom accent bar */}
@@ -950,6 +977,7 @@ export const BlogToShortsVideo: React.FC<{ script: VideoScript }> = ({
           <Sequence key={scene.id} from={from} durationInFrames={SCENE_DURATION}>
             <ContentScene
               text={scene.text}
+              description={scene.description}
               sceneIndex={index}
               totalScenes={totalScenes}
               backgroundUrl={scene.backgroundUrl}

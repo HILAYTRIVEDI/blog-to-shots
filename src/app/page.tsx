@@ -1,30 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
-import dynamic from "next/dynamic";
+import VideoPreview from "@/components/VideoPreview";
 import type { VideoScript, GenerateResponse } from "@/lib/types";
 
-const VideoPreview = dynamic(() => import("@/components/VideoPreview"), {
-  ssr: false,
-  loading: () => (
-    <div className="preview-skeleton">
-      <div className="skeleton-pulse" />
-    </div>
-  ),
-});
+
 
 type Stage = "idle" | "scraping" | "generating" | "done" | "error";
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [stage, setStage] = useState<Stage>("idle");
+  const [loading, setLoading] = useState(false);
   const [script, setScript] = useState<VideoScript | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage>("idle");
+  const [downloading, setDownloading] = useState(false);
 
-  async function handleGenerate(e: React.FormEvent) {
-    e.preventDefault();
+  const handleGenerate = async () => {
     if (!url.trim()) return;
-
+    setLoading(true);
     setError(null);
     setScript(null);
     setStage("scraping");
@@ -34,26 +28,54 @@ export default function Home() {
       await new Promise((r) => setTimeout(r, 800));
       setStage("generating");
 
-      const res = await fetch("/api/generate-script", {
+      const response = await fetch("/api/generate-script", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
       });
 
-      const data: GenerateResponse = await res.json();
+      const data: GenerateResponse = await response.json();
 
       if (!data.success || !data.script) {
-        throw new Error(data.error || "Failed to generate script.");
+        throw new Error(data.error || "Failed to generate script");
       }
 
       setScript(data.script);
       setStage("done");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Something went wrong");
       setStage("error");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
+
+  const handleDownload = async () => {
+    if (!script) return;
+    setDownloading(true);
+    try {
+      const response = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script }),
+      });
+      
+      if (!response.ok) throw new Error("Rendering failed");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `blog-to-shorts-${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Download failed: " + (err instanceof Error ? err.message : "Unknown error"));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <main className="app-container">
@@ -185,9 +207,16 @@ export default function Home() {
 
               <div className="scenes-list">
                 {script.scenes.map((scene) => (
-                  <div key={scene.id} className="scene-item">
-                    <span className="scene-number">{scene.id}</span>
-                    <p>{scene.text}</p>
+                  <div key={scene.id} className="scene-item group">
+                    <span className="scene-number group-hover:bg-purple-500/20 group-hover:text-purple-300 transition-colors">{scene.id}</span>
+                    <div className="scene-text-wrapper">
+                      <p className="scene-main-text font-medium text-white">{scene.text}</p>
+                      {scene.description && (
+                        <p className="scene-description text-sm text-gray-400 mt-1 italic opacity-80 group-hover:opacity-100 transition-opacity">
+                          {scene.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -200,12 +229,35 @@ export default function Home() {
           </div>
 
           {/* Video Preview */}
-          <div className="preview-card">
-            <div className="card-header">
-              <h2>🎬 Video Preview</h2>
-              <span className="badge">9:16 Vertical</span>
+          <div className="preview-card glass-panel">
+            <div className="card-header pb-4 border-b border-white/10 mb-4 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎬</span>
+                <h2 className="text-xl font-bold">Video Preview</h2>
+              </div>
+              <div className="flex gap-3">
+                <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono text-purple-300 border border-purple-500/30">
+                  9:16 Vertical
+                </span>
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="px-4 py-1 bg-purple-600 hover:bg-purple-500 rounded-full text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Rendering...
+                    </>
+                  ) : (
+                    <>
+                      <span>⬇️</span> Download MP4
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <div className="preview-container">
+            <div className="preview-container aspect-[9/16] bg-black rounded-lg overflow-hidden relative shadow-2xl border border-white/10">
               <VideoPreview script={script} />
             </div>
           </div>

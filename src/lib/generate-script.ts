@@ -17,6 +17,7 @@ You must:
 9. Ensure scene timing is natural.
 10. Optimize for retention and scroll-stopping hooks.
 11. For each scene, provide 2 visual search keywords that describe the best stock photo background for that scene. Keywords should be concrete, visual nouns (e.g. "technology laptop", "sunrise mountain", "robot hand"). Avoid abstract words.
+12. For each scene, provide a "description" field: a 1-sentence explanation of WHY this point matters or provides context. This is for the human/agent reading the script.
 
 Output format must always be valid JSON.`;
 
@@ -32,6 +33,7 @@ Requirements:
 - Focus on clarity.
 - Add one persuasive CTA at the end.
 - For the hook, each scene, and the CTA, provide 2 visual keywords that describe the ideal stock photo background. Keywords should be concrete visual nouns, NOT abstract concepts.
+- For each scene, include a "description" (1 short sentence) explaining the context.
 
 Return output in this exact JSON format (no markdown, no code fences, ONLY raw JSON):
 {
@@ -39,8 +41,8 @@ Return output in this exact JSON format (no markdown, no code fences, ONLY raw J
   "hook": "A scroll-stopping hook under 12 words",
   "hookKeywords": ["keyword1", "keyword2"],
   "scenes": [
-    {"id": 1, "text": "Scene text under 12 words", "keywords": ["keyword1", "keyword2"]},
-    {"id": 2, "text": "Scene text under 12 words", "keywords": ["keyword1", "keyword2"]}
+    {"id": 1, "text": "Scene text under 12 words", "description": "Why this matters", "keywords": ["keyword1", "keyword2"]},
+    {"id": 2, "text": "Scene text under 12 words", "description": "Context here", "keywords": ["keyword1", "keyword2"]}
   ],
   "cta": "A compelling call to action",
   "ctaKeywords": ["keyword1", "keyword2"]

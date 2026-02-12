@@ -3,6 +3,7 @@ import { z } from "zod";
 export const SceneSchema = z.object({
   id: z.number(),
   text: z.string(),
+  description: z.string().optional(), // Short context/explanation for the scene
   keywords: z.array(z.string()).optional(),
   backgroundUrl: z.string().optional(),
 });
