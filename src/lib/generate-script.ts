@@ -61,6 +61,9 @@ export async function generateVideoScript(articleText: string): Promise<VideoScr
   const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     systemInstruction: SYSTEM_PROMPT,
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
   });
 
   const prompt = MASTER_PROMPT.replace("{{ARTICLE_TEXT}}", articleText);
@@ -70,17 +73,28 @@ export async function generateVideoScript(articleText: string): Promise<VideoScr
 
   // Clean the response - remove possible markdown fences
   let cleaned = responseText.trim();
-  if (cleaned.startsWith("\`\`\`")) {
-    cleaned = cleaned.replace(/^\`\`\`(?:json)?\n?/, "").replace(/\n?\`\`\`$/, "");
-  }
+  // Strip any markdown code fences
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(
-      `Gemini returned invalid JSON. Raw response:\n${responseText.slice(0, 500)}`
-    );
+    // Fallback: try to extract JSON object from the response
+    const jsonMatch = cleaned.match(/(\{[\s\S]*\})/)?.[1];
+    if (jsonMatch) {
+      try {
+        parsed = JSON.parse(jsonMatch);
+      } catch {
+        throw new Error(
+          `Gemini returned invalid JSON. Raw response:\n${responseText.slice(0, 500)}`
+        );
+      }
+    } else {
+      throw new Error(
+        `Gemini returned invalid JSON. Raw response:\n${responseText.slice(0, 500)}`
+      );
+    }
   }
 
   // Validate with Zod

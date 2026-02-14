@@ -473,11 +473,98 @@ body {
   font-weight: 500;
 }
 
+.scene-main-text {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.scene-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.scene-item:hover .scene-description {
+  opacity: 1;
+}
+
+.scene-item:hover .scene-number {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent);
+}
+
 /* ─────────── Preview ─────────── */
+.preview-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-emoji {
+  font-size: 24px;
+}
+
+.preview-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-badge {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  font-size: 12px;
+  font-family: 'Inter', monospace;
+  color: var(--accent);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: white;
+  background: var(--gradient-1);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.download-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.45);
+}
+
+.download-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.download-spinner {
+  width: 14px;
+  height: 14px;
+}
+
 .preview-container {
   padding: 24px;
   display: flex;
   justify-content: center;
+  aspect-ratio: 9/16;
+  background: #000;
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+  position: relative;
 }
 
 .preview-skeleton {
